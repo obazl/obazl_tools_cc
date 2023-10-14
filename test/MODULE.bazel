@@ -1,0 +1,2 @@
+bazel_dep(name = "obazl_tools_cc")
+local_path_override(module_name = "obazl_tools_cc", path = "..")

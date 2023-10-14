@@ -1,0 +1,54 @@
+load("//config/cc:CONFIG.bzl",
+     "BASE_COPTS",
+     "BASE_LOCAL_DEFINES",
+     "BASE_LINKOPTS")
+
+load("@makeheaders//src:RULES.bzl", "makeheaders")
+
+TOOLCHAINS = ["//:module_profiles"]
+
+##########
+cc_library(
+    name  = "obazl_utils",
+    visibility = ["//visibility:public"],
+    srcs  = ["obazl_utils.c", "mkhdrs"],
+    hdrs = [":obazl_utils.h"],
+    deps = [
+        "@liblogc//src:logc",
+        "@uthash//src:uthash"
+   ],
+    copts = BASE_COPTS + [
+        "-I$(@liblogc)/src",
+        "-I$(@uthash)/src",
+        "-I$(GENDIR)/$(@)/src/utils"
+
+    ],
+    local_defines = BASE_LOCAL_DEFINES,
+    linkopts = BASE_LINKOPTS,
+    linkstatic = 1,
+    toolchains = TOOLCHAINS,
+)
+
+################
+makeheaders(
+    name = "mkhdrs",
+    hdrs_srcs = [], #"obazl_utils.c"],
+    hdrs_renamed = {"obazl_utils.c": "_obazl_utils.h"},
+    additional_srcs = ["//src:ansi_colors.h"] + select({
+        "//config/compilation_mode:fastbuild?": [
+            "//src:macros_debug.h",
+        ],
+        "//conditions:default":   [
+            "//src:macros_ndebug.h",
+        ]
+    })
+)
+
+makeheaders(
+    name             = "mkhdrs_export",
+    out              = "obazl_utils.h",
+    export_interface = True,
+    hdrs_srcs        = ["obazl_utils.c"],
+    visibility       = ["//visibility:public"]
+)
+

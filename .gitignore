@@ -1,3 +1,10 @@
+.bazelignore
+.bazeliskrc
+.bazelversion
+.bazel
+bazel-*
+*.gz
+
 # Prerequisites
 *.d
 

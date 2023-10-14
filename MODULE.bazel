@@ -1,0 +1,15 @@
+module(
+    name = "obazl_tools_cc",
+    version = "1.0.0",
+    compatibility_level = 1,
+    bazel_compatibility = [">=6.0.0"]
+)
+
+## bcr deps:
+bazel_dep(name = "platforms",    version = "0.0.7")
+bazel_dep(name = "bazel_skylib", version = "1.4.2")
+
+## obazl deps:
+bazel_dep(name = "liblogc", version = "1.0.0")
+bazel_dep(name = "makeheaders", version = "1.0.2")
+bazel_dep(name = "uthash", version = "2.3.0")

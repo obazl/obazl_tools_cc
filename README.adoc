@@ -1,0 +1,236 @@
+= obazl_tools_cc
+:toc:
+
+WARNING: Unstable, still under development.
+
+
+Generally useful stuff for building C/C++ with Bazel.
+
+Usage:
+
+    bazel_dep(name = "obazl_tools_cc", version = "x.y.z")
+
+
+== module_profiles
+
+    load("@obazl_tools_cc//rules:module_profiles.bzl",  "module_profiles")
+
+The `module_profiles` rule defines some
+link:https://bazel.build/reference/be/make-variables[make variables]
+that make writing CC build targets easier.
+
+=== context-independent path expressions
+
+CC code usually needs to pass file system paths in `copts`; for
+example, [nowrap]`+copts = ["-Ipath/to/headers"]+`. This is
+problematic for Bazel modules, since the path varies depending on
+build context. For a root module named `foo`, the path might look like
+this: [nowrap]`+copts = ["-Iinclude"]+`; but when the same module is
+used as an external dependency, the path will start with `external`,
+followed by the "canonical" (i.e. expanded) module identifier, which
+has the form `+module_name~version+`; e.g. [nowrap]`+copts = ["-Iexternal/foo~1.0.0/include"]+`.
+
+Unless you've overridden the module, in which case the cannonical name
+will have the form `+module_name~override+`. Furthermore if the module
+is produced by an extension, the cannonical name takes yet a different
+form; for example it could look something like
+[nowrap]`+mainmodule~override~submod~foo+`.
+
+And to top it all off, the
+link:https://bazel.build/external/module#repository_names_and_strict_deps[documentation,window=_blank]
+explicitly states: "Note that the canonical name format is not an API
+you should depend on and is subject to change at any time."
+
+The `module_profiles` rule solves this problem by providing one
+link:https://bazel.build/reference/be/make-variables[make variable]
+for each module, that always expands to the contextually correct
+file-system path segments. The rule takes a list of build targets, and
+for each constructs a make variable whose name matches the "apparent"
+repository part of the target label (e.g. `@foo`), that expands to
+canonical form . For example [nowrap]`+"-I$(@foo)/include"+` will
+expand to [nowrap]`+-I./include+`, or
+[nowarp]`+-Iexternal/foo~1.0.0/include+`, or
+[nowrap]`+-Iexternal/foo~override/include+`, etc. depending on context.
+
+
+
+Then instantiate the macro in a `BUILD.bazel` file. List one target
+for each `bazel_dep` module for which you need an include path. Since
+these are dependencies, you may need to instantiate a separate target
+for dev dependencies.
+
+.//:BUILD.bzl
+----
+load("@obazl_tools_cc//rules:module_profiles.bzl", "module_profiles")
+module_profiles(
+    name    = "module_profiles",
+    modules = ["@foo//bar:baz"]
+)
+----
+
+In this example, module `unity` is listed as a `dev_dependency` in
+`MODULE.bazel`.
+
+This defines one make variable for each repository listed in the
+`repos` attr. Add the `module_profiles` target label to the `toolchains`
+attribute and you can then use them as e.g. `$(@uthash)`,
+`$(@liblogc)`, etc. Note that `@` is included in the string. As a
+special case, `$(@)` resolves to the "current" repo.
+
+The make vars expand to the path, not just the repo identifier. In
+particular the expansion includes the `external/` prefix for external
+repos.
+
+For example, you might have:
+
+.@foo//src:BUILD.bazel
+----
+cc_library(
+...
+    deps = ["@liblogc//src:logc"],
+    copts = ["-I$(@)/src", "-I$(@liblogc)/src"],
+    toolchains = ["//:module_profiles"]
+    ...
+)
+----
+
+Assuming the versions of both `@foo` `@liblogc` are `1.0.0`, if this
+target is built from within the `foo` repo, the expansions are:
+
+* `$(@)` expands to `.`, yielding `-I./src`
+* `$(@liblogc)/src` expands to `external/liblogc~1.0.0/src`
+
+If this target is built as an external repo (i.e. module `foo` is
+listed as a `bazel_dep` for some other module):
+
+* `$(@)` expansion includes `external`, giving `-Iexternal/foo~1.0.0/src`
+* `$(@liblogc)/src` expands as above
+
+=== module name & version
+
+The authoritative source for module name and version is the
+`MODULE.bazel` file. To inject those values into source code we can
+use functions from Bazel's
+link:https://bazel.build/rules/lib/toplevel/native[native] module,
+which can be used in `BUILD.bazel` files.
+
+To put the version identifier in a macro:
+
+----
+    local_defines = ["'-D{}_VERSION=\"{}\"'".format(module_name().upper(), module_version())]
+----
+
+If the module name is `foo` and version is `1.2.3`, this will add the
+following to compile command:
+
+   '-DFOO_VERSION="1.2.3"'
+
+
+
+==== deprecated
+
+(Wrote this before I realized native methods could be used in `BUILD.bazel` files.)
+
+
+
+Version 2 adds make variables `MODULE_NAME` and `MODULE_VERSION`, whose values are derived from Bazel's `native.module_name()` and `native.module_version()`, respectively.
+
+This allows C/C++ code to integrate the version string from MODULE.bazel, like so in BUILD.bazel (assuming one has configured //:module_profiles as directed above):
+
+----
+copts = ["'-D$(MODULE_NAME)_VERSION=\"$(MODULE_VERSION)\"'"]
+...
+toolchains = ["//:module_profiles"]
+----
+
+which generates on the cmd line: '-DMYMODULE_VERSION="2.1.2"'
+
+And in source code: `const char *mymodule_version = MYMODULE_VERSION;`
+
+== build profiles and conditional compilation
+
+A build profile is the collection of build options, flags, macro
+definitions, etc. - that determines the outcome of a build. Different
+build profiles produce outcomes with different characteristics.
+Optimization level is an obvious example that would usually differ for
+each profile. Typically a CC project might include three build
+profiles, dev, test, and release, but a complex system may involve
+many more build profiles.
+
+Bazel has no notion of build profiles in this sense, but it does
+define three "compilation modes", `fastbuild`, `dbg`, and `opt`. One
+of these three will be enabled for every build, which means we can use
+them as build profiles. For example, the CC toolchain will automatically configure
+compilation actions based on compilation_mode - for example, passing
+`-g` for `dbg` builds. But a build target can `select` on compilation
+mode to decide on additional flags to use in `copts`.
+
+----
+config_setting(
+    name = "dev?",
+    values = {"compilation_mode": "fastbuild"}
+)
+...
+    select({ ":dev?": ["-foo"] ...})
+----
+
+
+One important aspect of a build profile is _source construction_,
+controlled by preprocessor macros. Different builds may
+include different code fragments. For example, a `dev` profile might
+include source code that prints trace messages to `stdout`, or dumps
+data structures to a file or `stdout`, etc. - code that should not be
+included in a release build.
+
+Build rules can use compilation mode to decide which source files to
+compile. For example, we might have a `logger.c` file for dumping data
+structures, that we only use for the `dev` profile. But most CC code
+also uses conditional compilation controlled by preprocessor macros,
+e.g.
+
+[source,c]
+----
+#ifdef FOO
+... code for "foo" builds
+#else
+... code for non-foo builds
+#endif
+----
+
+where `FOO` usually expresses some feature of the build environment,
+such platform or tools (e.g. `+__GNUC__+`, `+__llvm__+` etc.),
+available headers (`+HAVE_FCNTL_H+`), and so forth.
+
+Not uncommonly `DEBUG` is the macro used to control dev
+builds, but any macro name may be used.
+
+WARNING: Do not confuse a `DEBUG` build (where `#ifdef DEBUG` is
+true), and a `debugger` build, where code is compiled for use with a
+debugger (e.g. by passing `-g` to the compile command). Bazel's `dbg`
+compilation mode enables debugger builds, _not_ "DEBUG" builds.
+
+We can exploit a Bazel feature to support build profiles. Bazel always
+predefines a `COMPILATION_MODE` make variable whose value will be one
+of `fastbuild`, `dbg`, or `opt`. So we can write, in our cc target
+code,
+
+
+    local_defines = ["DEBUG_$(COMPILATION_MODE)"]
+
+The rule will then automatically add one of `-DDEBUG_fastbuild`,
+`-DDEBUG_dbg`, of `_DDEBUG_opt` to the compile command line, depending
+on compilation mode, which makes them available for use in source code
+to control conditional compilation:
+
+[source,c]
+----
+#if defined(DEBUG_fastbuild)
+... code for dev profile
+#elif  defined(DEBUG_dbg)
+... code for debug profile
+#elif  defined(DEBUG_opt)
+... code for release profile
+#else
+... should not happen
+#endif
+----

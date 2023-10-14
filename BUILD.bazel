@@ -1,0 +1,24 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_setting")
+
+load("//rules:module_profiles.bzl", "module_profiles")
+
+string_setting(name = "version",
+               build_setting_default = "2.0.0",
+               visibility = ["//visibility:public"])
+
+PROD_REPOS = [
+    "@liblogc//src:logc",
+    "@uthash//src:uthash",
+]
+
+module_profiles(
+    name = "module_profiles",
+    repos = PROD_REPOS
+)
+
+module_profiles(
+    name = "test_module_profiles",
+    repos = PROD_REPOS + [
+    ]
+)
+
