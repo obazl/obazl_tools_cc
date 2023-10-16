@@ -10,6 +10,6 @@ bazel_dep(name = "platforms",    version = "0.0.7")
 bazel_dep(name = "bazel_skylib", version = "1.4.2")
 
 ## obazl deps:
-bazel_dep(name = "liblogc", version = "1.0.0")
+bazel_dep(name = "liblogc", version = "2.0.0")
 bazel_dep(name = "makeheaders", version = "1.0.2")
-bazel_dep(name = "uthash", version = "2.3.0")
+bazel_dep(name = "uthash", version = "3.0.0")

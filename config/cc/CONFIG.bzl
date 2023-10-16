@@ -28,6 +28,13 @@ BASE_LINKOPTS = select({
 
 BASE_LOCAL_DEFINES = ["DEBUG_$(COMPILATION_MODE)"]
 
+def MODULE_VERSION():
+    return "'-D{}_VERSION=\"{}\"'".format(
+        native.module_name().upper(),
+        native.module_version()
+    )
+
+
     # select({
     #     "//bzl/host:macos": []
     #     "//bzl/host:linux": ["-D_POSIX_C_SOURCE=200809L", ## strndup etc.
