@@ -14,8 +14,6 @@ BASE_COPTS = [
     "@platforms//os:linux": [
         "-std=gnu11",
         "-fPIC",
-        # GCC:
-        "-Werror",
     ],
     "//conditions:default": ["-std=c11"],
 })
@@ -28,12 +26,17 @@ BASE_LINKOPTS = select({
 
 BASE_LOCAL_DEFINES = ["DEBUG_$(COMPILATION_MODE)"]
 
-def MODULE_VERSION():
-    return "'-D{}_VERSION=\"{}\"'".format(
+BASE_DEFINES = select({
+    "//config/host/build:linux?": ["DSO_EXT=\\\".so\\\""],
+    "//config/host/build:macos?": ["DSO_EXT=\\\".dylib\\\""],
+    "//conditions:default":   ["DSO_EXT=\\\".so\\\""]
+})
+
+def module_version():
+    return ["'{}_VERSION=\"{}\"'".format(
         native.module_name().upper(),
         native.module_version()
-    )
-
+    )]
 
     # select({
     #     "//bzl/host:macos": []
