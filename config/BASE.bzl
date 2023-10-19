@@ -21,15 +21,21 @@ BASE_OPTS = [
     "//conditions:default": []
 })
 
-BASE_COPTS = BASE_OPTS + ["-x", "c"] + select({
-    # "@platforms//os:linux": ["-std=gnu11"], # gcc
-    "//conditions:default": ["-std=c11"]
-})
+## WARNING: -std=c11 on linux gcc requires feature test
+## macros for some lib apis (strdup, macros in <dlfcn.h>, etc.)
+## e.g. _POSIX_C_SOURCE >= 200809L or -D_GNU_SOURCE
+## using -std=gnu11 does this automatically(?)
+BASE_COPTS = BASE_OPTS + ["-x", "c", "-std=c11"]
+# + select({
+#     # "@platforms//os:linux": ["-std=gnu11"], # gcc extensions
+#     "//conditions:default": ["-std=c11"]
+# })
 
-BASE_CXXOPTS = BASE_OPTS + ["-x", "c++"] + select({
-    # "@platforms//os:linux": ["-std=gnu++17"], # gcc default
-    "//conditions:default": ["-std=c++17"]
-})
+BASE_CXXOPTS = BASE_OPTS + ["-x", "c++", "-std=c++17"]
+# + select({
+#     # "@platforms//os:linux": ["-std=gnu++17"], # gcc default
+#     "//conditions:default": ["-std=c++17"]
+# })
 
 BASE_LINKOPTS = select({
     "@platforms//os:linux": ["-rdynamic", "-ldl"],
