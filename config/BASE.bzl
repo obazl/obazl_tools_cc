@@ -4,24 +4,31 @@ def define_module_version():
         native.module_version()
     )]
 
-BASE_COPTS = [
-    "-x", "c",
+BASE_OPTS = [
     "-Wall",
     "-Wextra",
     "-Werror",
     "-Wfatal-errors",
 ] + select({
     "@platforms//os:macos": [
-        "-std=c11",
         "-Werror=pedantic",
         "-Wpedantic",
         "-pedantic-errors",
     ],
     "@platforms//os:linux": [
-        "-std=gnu11",
-        "-fPIC",
+        # "-fPIC", ## bazel already provides this?
     ],
-    "//conditions:default": ["-std=c11"],
+    "//conditions:default": []
+})
+
+BASE_COPTS = BASE_OPTS + ["-x", "c"] + select({
+    # "@platforms//os:linux": ["-std=gnu11"], # gcc
+    "//conditions:default": ["-std=c11"]
+})
+
+BASE_CXXOPTS = BASE_OPTS + ["-x", "c++"] + select({
+    # "@platforms//os:linux": ["-std=gnu++17"], # gcc default
+    "//conditions:default": ["-std=c++17"]
 })
 
 BASE_LINKOPTS = select({
