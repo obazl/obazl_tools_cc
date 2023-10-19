@@ -9,16 +9,21 @@ package(default_visibility = ["//visibility:public"])
 
 ###############
 config_setting(
-    name = "dbg?",
+    name = "dbg",
     values = {"compilation_mode": "dbg"}
 )
 
 config_setting(
-    name = "dev?",
+    name = "dev",
     values = {"compilation_mode": "fastbuild"}
 )
 
 config_setting(
-    name = "opt?",
+    name = "fastbuild",
+    values = {"compilation_mode": "fastbuild"}
+)
+
+config_setting(
+    name = "opt",
     values = {"compilation_mode": "opt"}
 )
