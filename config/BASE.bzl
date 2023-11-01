@@ -46,9 +46,9 @@ BASE_LINKOPTS = select({
 ## we want this to percolate upwards
 # PROFILE = "PROFILE_$(COMPILATION_MODE)"
 
-BASE_DSO_EXT = select({
-    "//config/host/build:linux?": ["DSO_EXT=\\\".so\\\""],
-    "//config/host/build:macos?": ["DSO_EXT=\\\".dylib\\\""],
+DSO_EXT = select({
+    "@platforms//os:linux": ["DSO_EXT=\\\".so\\\""],
+    "@platforms//os:macos": ["DSO_EXT=\\\".dylib\\\""],
     "//conditions:default":   ["DSO_EXT=\\\".so\\\""]
 })
 
