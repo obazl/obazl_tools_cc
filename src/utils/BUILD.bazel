@@ -1,11 +1,8 @@
-load("//config/cc:CONFIG.bzl",
+load("//config:BASE.bzl",
      "BASE_COPTS",
-     "BASE_LOCAL_DEFINES",
      "BASE_LINKOPTS")
 
-load("@makeheaders//src:RULES.bzl", "makeheaders")
-
-TOOLCHAINS = ["//:module_profiles"]
+load("@makeheaders//rules:makeheaders.bzl", "makeheaders")
 
 ##########
 cc_library(
@@ -13,20 +10,15 @@ cc_library(
     visibility = ["//visibility:public"],
     srcs  = ["obazl_utils.c", "mkhdrs"],
     hdrs = [":obazl_utils.h"],
+    includes = ["."],
     deps = [
-        "@liblogc//src:logc",
-        "@uthash//src:uthash"
+        "@liblogc//lib:logc",
+        "@uthash//lib:uthash"
    ],
-    copts = BASE_COPTS + [
-        "-I$(@liblogc)/src",
-        "-I$(@uthash)/src",
-        "-I$(GENDIR)/$(@)/src/utils"
-
-    ],
-    local_defines = BASE_LOCAL_DEFINES,
+    copts = BASE_COPTS,
+    local_defines = [],
     linkopts = BASE_LINKOPTS,
     linkstatic = 1,
-    toolchains = TOOLCHAINS,
 )
 
 ################
@@ -34,14 +26,15 @@ makeheaders(
     name = "mkhdrs",
     hdrs_srcs = [], #"obazl_utils.c"],
     hdrs_renamed = {"obazl_utils.c": "_obazl_utils.h"},
-    additional_srcs = ["//src:ansi_colors.h"] + select({
-        "//config/compilation_mode:fastbuild?": [
-            "//src:macros_debug.h",
+    additional_srcs  = select({
+        "@makeheaders//compilation_mode:fastbuild": [
+            "@makeheaders//logging:ansi_colors.h",
+            "@makeheaders//logging:macros_debug.h"
         ],
-        "//conditions:default":   [
-            "//src:macros_ndebug.h",
+        "//conditions:default": [
+            "@makeheaders//logging:macros_ndebug.h"
         ]
-    })
+    }),
 )
 
 makeheaders(

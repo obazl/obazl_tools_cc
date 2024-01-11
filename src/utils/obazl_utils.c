@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "log.h"
+#include "liblogc.h"
 #include "utstring.h"
 #include "_obazl_utils.h"
 
