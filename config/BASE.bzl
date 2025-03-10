@@ -15,8 +15,11 @@ BASE_OPTS = [
         "-Wpedantic",
         "-pedantic-errors",
     ],
+    # WARNING: assuming gcc?
     "@platforms//os:linux": [
+        # "-std=gnu11",  ???
         # "-fPIC", ## bazel already provides this?
+        # "-Wl,--no-undefined",
     ],
     "//conditions:default": []
 })
@@ -37,9 +40,11 @@ BASE_CXXOPTS = BASE_OPTS + ["-x", "c++", "-std=c++17"]
 #     "//conditions:default": ["-std=c++17"]
 # })
 
-BASE_LINKOPTS = select({
-    "@platforms//os:linux": ["-rdynamic", "-ldl"],
-    "@platforms//os:macos": [],
+DYNLINK_OPTS = select({
+    "@obazl_tools_cc//profile:linux_opt": ["-rdynamic", "-ldl"],
+    "@obazl_tools_cc//profile:macos_opt": ["-Wl,-export_dynamic"], # "-ldl"
+    # "@platforms//os:linux": ["-rdynamic", "-ldl"],
+    # "@platforms//os:macos": ["-Wl,-export_dynamic"], # "-ldl"
     "//conditions:default": []
 })
 
@@ -50,6 +55,23 @@ DSO_EXT = select({
     "@platforms//os:linux": ["DSO_EXT=\\\".so\\\""],
     "@platforms//os:macos": ["DSO_EXT=\\\".dylib\\\""],
     "//conditions:default":   ["DSO_EXT=\\\".so\\\""]
+})
+
+STRDUP_DEFINE =select({
+    # strdup, strndup since glibc 2.10
+    "@platforms//os:linux": ["_POSIX_C_SOURCE=200809L"],
+    # "_XOPEN_SOURCE=500"],
+    "//conditions:default":   []
+})
+
+DIRENT_DEFINE =select({
+    "@platforms//os:linux": ["_DEFAULT_SOURCE"],
+    "//conditions:default":   []
+})
+
+DLSYM_DEFINE =select({
+    "@platforms//os:linux": ["_GNU_SOURCE"],
+    "//conditions:default":   []
 })
 
 # defines =

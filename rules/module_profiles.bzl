@@ -1,3 +1,5 @@
+## OBSOLETE
+
 def _module_profiles_impl(ctx):
     items = {}
     for item in ctx.attr.repos:

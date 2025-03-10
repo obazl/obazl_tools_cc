@@ -1,0 +1,76 @@
+load("@bazel_skylib//rules:common_settings.bzl",
+     "bool_flag", "string_flag")
+
+load("@makeheaders//rules:makeheaders.bzl", "makeheaders")
+
+load("//config:BASE.bzl", "BASE_COPTS")
+
+PROFILE = ["PROFILE_$(COMPILATION_MODE)"]
+
+###########
+cc_library(
+    name = "spawn_cmd",
+    srcs = [
+        "spawn_cmd.c",
+        ":mkhdrs"
+    ],
+    includes = ["."],
+    # hdrs = ["spawn_cmd.h"],
+    alwayslink = True,
+    copts = BASE_COPTS + [
+        "-I$(GENDIR)/lib",
+    ],
+    deps = ["@liblogc//lib:logc",
+            "@uthash//lib:uthash"],
+    defines = PROFILE + select({
+        ## for dirent->d_type macros:
+        "@platforms//os:linux": ["_DEFAULT_SOURCE"],
+        "//conditions:default": []
+    }),
+    # local_defines = [
+    #     "BAZEL_CURRENT_REPOSITORY=\\\"{}\\\"".format(package_relative_label("@obazl_conig_cc").repo_name)
+    # ],
+    visibility = ["//visibility:public"]
+)
+
+makeheaders(
+    name = "mkhdrs",
+    hdrs_srcs = [
+        "spawn_cmd.c"
+    ],
+    additional_srcs = [
+        "@liblogc//macros:ansi_colors.h",
+    ] + select({
+        "@obazl_tools_cc//profile:dev?": [
+            "@liblogc//macros:logging_debug.h",
+        ],
+        "//conditions:default": [
+            "@liblogc//macros:logging_ndebug.h",
+        ]
+    }),
+)
+
+makeheaders(
+    name = "mkhdrs_export",
+    out = "tools_opam.h",
+    export_interface = True,
+    hdrs_srcs = [
+        "emit_build_bazel.c",
+        "emit_ocamlsdk.c",
+        "emit_pkg_bindir.c",
+        "spawn_cmd.c",
+        "utils.c",
+        "versions.c",
+    ],
+    additional_srcs = [
+        "@liblogc//macros:ansi_colors.h",
+    ] + select({
+        "@obazl_tools_cc//profile:dev?": [
+            "@liblogc//macros:logging_debug.h",
+        ],
+        "//conditions:default": [
+            "@liblogc//macros:logging_ndebug.h",
+        ]
+    }),
+    visibility = ["//visibility:public"]
+)
