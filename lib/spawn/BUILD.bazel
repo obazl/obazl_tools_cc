@@ -9,7 +9,7 @@ PROFILE = ["PROFILE_$(COMPILATION_MODE)"]
 
 ###########
 cc_library(
-    name = "spawn_cmd",
+    name = "spawn",
     srcs = [
         "spawn_cmd.c",
         ":mkhdrs"
