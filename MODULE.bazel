@@ -1,6 +1,6 @@
 module(
     name                = "obazl_tools_cc",
-    version             = "3.0.0.dev",
+    version             = "3.0.0",
     compatibility_level = 3,
     bazel_compatibility = [">=8.0.0"]
 )
